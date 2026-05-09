@@ -1,0 +1,1073 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Document Automation Engine</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --card: #16161f;
+    --card2: #1e1e2a;
+    --border: rgba(139,92,246,0.15);
+    --border2: rgba(139,92,246,0.3);
+    --accent: #8b5cf6;
+    --accent2: #a78bfa;
+    --accent3: #7c3aed;
+    --teal: #14b8a6;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --green: #22c55e;
+    --text: #f1f0ff;
+    --text2: #a39fc7;
+    --text3: #6b6890;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --glow: 0 0 30px rgba(139,92,246,0.12);
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  /* LAYOUT */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .header { background: var(--bg2); border-bottom: 1px solid var(--border2); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent3), var(--accent2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .logo-text { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+  .logo-text span { color: var(--accent2); }
+  .header-badges { display: flex; gap: 8px; }
+  .badge { font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.3px; }
+  .badge-ai { background: rgba(139,92,246,0.15); color: var(--accent2); border: 1px solid rgba(139,92,246,0.3); }
+  .badge-live { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.2); display: flex; align-items: center; gap: 5px; }
+  .badge-live::before { content:''; width:6px; height:6px; border-radius:50%; background: var(--green); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar { width: 260px; background: var(--bg2); border-right: 1px solid var(--border); padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; overflow-y: auto; }
+  .sidebar-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text3); padding: 8px 12px 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; color: var(--text2); transition: all 0.15s; border: 1px solid transparent; }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: rgba(139,92,246,0.12); color: var(--accent2); border-color: rgba(139,92,246,0.2); }
+  .nav-item i { font-size: 17px; width: 20px; }
+  .nav-count { margin-left: auto; font-size: 11px; background: rgba(139,92,246,0.2); color: var(--accent2); padding: 2px 7px; border-radius: 10px; }
+
+  .template-list { margin-top: 4px; }
+  .template-chip { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text2); transition: all 0.15s; }
+  .template-chip:hover { background: var(--bg3); color: var(--text); }
+  .template-chip .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* CONTENT */
+  .content { flex: 1; overflow-y: auto; padding: 2rem; background: var(--bg); }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* UPLOAD ZONE */
+  .upload-zone { border: 2px dashed var(--border2); border-radius: 20px; padding: 3rem; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg2); position: relative; overflow: hidden; }
+  .upload-zone:hover, .upload-zone.dragging { border-color: var(--accent); background: rgba(139,92,246,0.05); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 48px; color: var(--accent2); margin-bottom: 1rem; display: block; }
+  .upload-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .upload-sub { font-size: 14px; color: var(--text2); margin-bottom: 1.5rem; }
+  .upload-formats { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .fmt-chip { font-size: 12px; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border2); color: var(--text2); }
+
+  /* CARDS GRID */
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 1.5rem; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .stat-label { font-size: 12px; color: var(--text3); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-size: 28px; font-weight: 700; }
+  .stat-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+  /* PLACEHOLDER CATEGORIES */
+  .ph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .ph-cat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+  .ph-cat-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .ph-cat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .ph-cat-name { font-size: 13px; font-weight: 600; }
+  .ph-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .ph-tag { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(139,92,246,0.08); color: var(--accent2); border: 1px solid rgba(139,92,246,0.15); font-family: monospace; }
+
+  /* SECTION HEADERS */
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .section-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .section-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--accent3); color: white; }
+  .btn-primary:hover { background: var(--accent); }
+  .btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border2); }
+  .btn-secondary:hover { background: var(--bg3); border-color: var(--accent2); }
+  .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+  .btn-danger { background: rgba(244,63,94,0.1); color: var(--rose); border: 1px solid rgba(244,63,94,0.2); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  /* FORM GENERATION */
+  .gen-form { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .gen-form-header { padding: 1.25rem 1.5rem; background: var(--card2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .gen-form-body { padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+  .field-group.full { grid-column: 1 / -1; }
+  .field-label { font-size: 12px; font-weight: 600; color: var(--text2); display: flex; align-items: center; gap: 5px; }
+  .field-label .req { color: var(--rose); font-size: 14px; }
+  .field-label .cat-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .field-input { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-size: 14px; outline: none; transition: border 0.15s; }
+  .field-input:focus { border-color: var(--accent2); }
+  .field-input::placeholder { color: var(--text3); }
+  textarea.field-input { resize: vertical; min-height: 80px; font-family: inherit; }
+
+  /* SMART INPUT */
+  .smart-input-wrapper { position: relative; }
+  .smart-textarea { width: 100%; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 1rem 1.25rem; color: var(--text); font-size: 14px; outline: none; min-height: 100px; resize: none; font-family: inherit; transition: border 0.15s; }
+  .smart-textarea:focus { border-color: var(--accent); }
+  .smart-result { background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-top: 10px; }
+  .mapping-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; }
+  .mapping-key { font-family: monospace; color: var(--accent2); background: rgba(139,92,246,0.08); padding: 2px 8px; border-radius: 5px; font-size: 12px; }
+  .mapping-arrow { color: var(--text3); }
+  .mapping-val { color: var(--text); font-weight: 500; }
+
+  /* PREVIEW PANEL */
+  .preview-wrap { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .preview-toolbar { padding: 10px 16px; background: var(--card2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .preview-dots { display: flex; gap: 5px; }
+  .preview-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .preview-body { padding: 2rem; background: white; min-height: 400px; color: #111; position: relative; }
+  .doc-content { font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.8; }
+  .doc-header { text-align: center; margin-bottom: 2rem; border-bottom: 2px solid #7c3aed; padding-bottom: 1rem; }
+  .doc-company { font-size: 22px; font-weight: 700; color: #7c3aed; }
+  .doc-tagline { font-size: 12px; color: #666; }
+  .doc-title { font-size: 18px; font-weight: 700; text-align: center; margin: 1.5rem 0 1rem; text-decoration: underline; }
+  .ph-highlight { background: #fef3c7; border: 1px dashed #f59e0b; border-radius: 3px; padding: 1px 5px; color: #92400e; font-family: monospace; font-size: 13px; cursor: pointer; }
+  .ph-filled { background: #d1fae5; border: 1px solid #22c55e; border-radius: 3px; padding: 1px 5px; color: #065f46; font-weight: 600; }
+  .doc-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 13px; }
+  .doc-table th { background: #7c3aed; color: white; padding: 8px 12px; text-align: left; }
+  .doc-table td { border: 1px solid #e5e7eb; padding: 7px 12px; }
+  .doc-table tr:nth-child(even) td { background: #f9fafb; }
+
+  /* TEMPLATE LIBRARY CARD */
+  .tpl-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: all 0.2s; }
+  .tpl-card:hover { border-color: var(--accent2); box-shadow: var(--glow); }
+  .tpl-card-img { height: 120px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 40px; position: relative; overflow: hidden; }
+  .tpl-card-img::after { content:''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.3)); }
+  .tpl-card-body { padding: 1rem; }
+  .tpl-card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .tpl-card-meta { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 10px; }
+  .tpl-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .tpl-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+
+  /* STEP INDICATOR */
+  .steps { display: flex; align-items: center; gap: 0; margin-bottom: 2rem; }
+  .step { display: flex; align-items: center; gap: 8px; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid var(--border2); color: var(--text3); }
+  .step.done .step-num { background: var(--green); border-color: var(--green); color: white; }
+  .step.active .step-num { background: var(--accent3); border-color: var(--accent3); color: white; }
+  .step-label { font-size: 13px; color: var(--text2); }
+  .step.active .step-label { color: var(--text); font-weight: 600; }
+  .step-line { flex: 1; height: 1px; background: var(--border2); margin: 0 8px; min-width: 20px; }
+  .step-line.done { background: var(--green); }
+
+  /* PROGRESS */
+  .progress-bar { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent3), var(--accent2)); border-radius: 2px; transition: width 0.4s; }
+
+  /* ANALYSIS PANEL */
+  .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .analysis-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .analysis-card-title { font-size: 13px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .content-item { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .content-item:last-child { border: none; }
+  .content-badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .badge-static { background: rgba(20,184,166,0.1); color: var(--teal); }
+  .badge-dynamic { background: rgba(245,158,11,0.12); color: var(--amber); }
+
+  /* AI TYPING */
+  .ai-thinking { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); padding: 8px 0; }
+  .ai-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); display: inline-block; animation: bounce 1.2s infinite; }
+  .ai-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .ai-dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+  /* NOTIFICATION */
+  .notif { position: fixed; top: 80px; right: 20px; background: var(--card); border: 1px solid var(--border2); border-radius: var(--radius); padding: 12px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; z-index: 1000; transform: translateX(120%); transition: transform 0.3s; box-shadow: 0 8px 32px rgba(0,0,0,0.4); max-width: 320px; }
+  .notif.show { transform: translateX(0); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  .divider { height: 1px; background: var(--border); margin: 8px 0; }
+  .flex { display: flex; }
+  .flex-col { flex-direction: column; }
+  .items-center { align-items: center; }
+  .gap-2 { gap: 8px; }
+  .gap-3 { gap: 12px; }
+  .mt-1 { margin-top: 6px; }
+  .mt-2 { margin-top: 12px; }
+  .mt-3 { margin-top: 16px; }
+  .mb-1 { margin-bottom: 6px; }
+  .mb-2 { margin-bottom: 12px; }
+  .w-full { width: 100%; }
+  .text-sm { font-size: 13px; }
+  .text-muted { color: var(--text2); }
+  .font-bold { font-weight: 700; }
+
+  /* TOOLTIP */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: #000; color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 10; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div>
+      <div class="logo-text">Doc<span>AI</span> Engine</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <span style="font-size:12px;color:var(--text3);">Smart Document Automation Platform</span>
+    <div class="header-badges">
+      <span class="badge badge-ai">✦ AI-Powered</span>
+      <span class="badge badge-live">Live</span>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-section">Workspace</div>
+  <div class="nav-item active" onclick="switchView('dashboard')">
+    <i class="ti ti-layout-dashboard"></i> Dashboard
+    <span class="nav-count">3</span>
+  </div>
+  <div class="nav-item" onclick="switchView('upload')">
+    <i class="ti ti-upload"></i> Upload Template
+  </div>
+  <div class="nav-item" onclick="switchView('library')">
+    <i class="ti ti-folders"></i> Template Library
+    <span class="nav-count">3</span>
+  </div>
+
+  <div class="divider"></div>
+  <div class="sidebar-section">Tools</div>
+  <div class="nav-item" onclick="switchView('generate')">
+    <i class="ti ti-wand"></i> Generate Document
+  </div>
+  <div class="nav-item" onclick="switchView('smart')">
+    <i class="ti ti-brain"></i> Smart Input
+  </div>
+  <div class="nav-item" onclick="switchView('placeholders')">
+    <i class="ti ti-tags"></i> Placeholder Map
+  </div>
+  <div class="nav-item" onclick="switchView('preview')">
+    <i class="ti ti-eye"></i> Live Preview
+  </div>
+
+  <div class="divider"></div>
+  <div class="sidebar-section">Saved Templates</div>
+  <div class="template-list" id="tplList"></div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="content" id="mainContent">
+
+  <!-- DASHBOARD -->
+  <div class="view active" id="view-dashboard">
+    <div class="section-head">
+      <div>
+        <div class="section-title"><i class="ti ti-layout-dashboard" style="color:var(--accent2)"></i> Dashboard</div>
+        <div class="section-sub">AI-powered document automation overview</div>
+      </div>
+      <button class="btn btn-primary" onclick="switchView('upload')"><i class="ti ti-upload"></i> Upload Template</button>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Templates Stored</div>
+        <div class="stat-value" style="color:var(--accent2)">3</div>
+        <div class="stat-sub">Ready to use</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Placeholders Detected</div>
+        <div class="stat-value" style="color:var(--amber)">47</div>
+        <div class="stat-sub">Across all templates</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:80%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Docs Generated</div>
+        <div class="stat-value" style="color:var(--green)">12</div>
+        <div class="stat-sub">This session</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:40%;background:linear-gradient(90deg,#22c55e,#4ade80)"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">AI Accuracy</div>
+        <div class="stat-value" style="color:var(--teal)">98%</div>
+        <div class="stat-sub">Placeholder mapping</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:98%;background:linear-gradient(90deg,#14b8a6,#2dd4bf)"></div></div>
+      </div>
+    </div>
+
+    <!-- Recent Templates -->
+    <div class="section-head mt-3">
+      <div class="section-title" style="font-size:15px;"><i class="ti ti-clock" style="color:var(--text2)"></i> Recent Templates</div>
+      <button class="btn btn-ghost btn-sm" onclick="switchView('library')">View All →</button>
+    </div>
+    <div class="cards-grid" id="dashTemplates"></div>
+
+    <!-- Placeholder Categories Preview -->
+    <div class="section-head mt-3" style="margin-top:1.5rem;">
+      <div class="section-title" style="font-size:15px;"><i class="ti ti-tags" style="color:var(--text2)"></i> Detected Placeholder Categories</div>
+      <button class="btn btn-ghost btn-sm" onclick="switchView('placeholders')">Full Map →</button>
+    </div>
+    <div class="ph-grid" id="phPreview"></div>
+  </div>
+
+  <!-- UPLOAD VIEW -->
+  <div class="view" id="view-upload">
+    <div class="section-head">
+      <div>
+        <div class="section-title"><i class="ti ti-upload" style="color:var(--accent2)"></i> Upload Template</div>
+        <div class="section-sub">AI will analyze and extract all dynamic placeholders automatically</div>
+      </div>
+    </div>
+
+    <div class="steps" style="margin-bottom:2rem;">
+      <div class="step active"><div class="step-num">1</div><div class="step-label">Upload</div></div>
+      <div class="step-line"></div>
+      <div class="step"><div class="step-num">2</div><div class="step-label">AI Analysis</div></div>
+      <div class="step-line"></div>
+      <div class="step"><div class="step-num">3</div><div class="step-label">Map Placeholders</div></div>
+      <div class="step-line"></div>
+      <div class="step"><div class="step-num">4</div><div class="step-label">Save Template</div></div>
+    </div>
+
+    <div class="upload-zone" id="uploadZone" ondragover="this.classList.add('dragging')" ondragleave="this.classList.remove('dragging')">
+      <input type="file" accept=".pdf,.doc,.docx,.txt" onchange="handleFileUpload(event)">
+      <i class="ti ti-cloud-upload upload-icon"></i>
+      <div class="upload-title">Drop your template here</div>
+      <div class="upload-sub">Supports PDF, DOC, DOCX files. AI will detect all dynamic placeholders.</div>
+      <div class="upload-formats">
+        <span class="fmt-chip">📄 PDF</span>
+        <span class="fmt-chip">📝 DOC</span>
+        <span class="fmt-chip">📋 DOCX</span>
+        <span class="fmt-chip">📃 TXT</span>
+      </div>
+    </div>
+
+    <!-- OR use demo -->
+    <div style="text-align:center;margin:1.5rem 0;">
+      <span style="color:var(--text3);font-size:13px;">— or load a demo template —</span>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-secondary" onclick="loadDemo('offer')"><i class="ti ti-file-text"></i> Offer Letter</button>
+      <button class="btn btn-secondary" onclick="loadDemo('invoice')"><i class="ti ti-receipt"></i> Invoice Template</button>
+      <button class="btn btn-secondary" onclick="loadDemo('nda')"><i class="ti ti-shield"></i> NDA Contract</button>
+    </div>
+
+    <!-- Analysis result (hidden until file loaded) -->
+    <div id="analysisResult" style="display:none;margin-top:2rem;">
+      <div class="ai-thinking" id="aiThinking">
+        <span style="color:var(--accent2);font-weight:600;">✦ AI Analyzing</span>
+        <div class="ai-dots"><span></span><span></span><span></span></div>
+        <span>Detecting placeholders...</span>
+      </div>
+      <div id="analysisCards" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- LIBRARY -->
+  <div class="view" id="view-library">
+    <div class="section-head">
+      <div>
+        <div class="section-title"><i class="ti ti-folders" style="color:var(--accent2)"></i> Template Library</div>
+        <div class="section-sub">All stored templates with extracted placeholder maps</div>
+      </div>
+      <button class="btn btn-primary" onclick="switchView('upload')"><i class="ti ti-plus"></i> Add Template</button>
+    </div>
+    <div class="cards-grid" id="libraryGrid"></div>
+  </div>
+
+  <!-- GENERATE -->
+  <div class="view" id="view-generate">
+    <div class="section-head">
+      <div>
+        <div class="section-title"><i class="ti ti-wand" style="color:var(--accent2)"></i> Generate Document</div>
+        <div class="section-sub">Fill in dynamic values — AI preserves all formatting automatically</div>
+      </div>
+    </div>
+
+    <!-- Template selector -->
+    <div style="margin-bottom:1.5rem;">
+      <label class="field-label" style="margin-bottom:6px;">Select Template</label>
+      <select id="genTemplateSelect" class="field-input" style="width:280px;" onchange="loadTemplateFields()">
+        <option value="">-- Choose a template --</option>
+        <option value="offer">Offer Letter</option>
+        <option value="invoice">Invoice Template</option>
+        <option value="nda">NDA Contract</option>
+      </select>
+    </div>
+
+    <div id="genFormWrap" style="display:none;">
+      <!-- Steps -->
+      <div class="steps" style="margin-bottom:1.5rem;">
+        <div class="step done"><div class="step-num"><i class="ti ti-check" style="font-size:12px;"></i></div><div class="step-label">Template Selected</div></div>
+        <div class="step-line done"></div>
+        <div class="step active"><div class="step-num">2</div><div class="step-label">Fill Dynamic Fields</div></div>
+        <div class="step-line"></div>
+        <div class="step"><div class="step-num">3</div><div class="step-label">Generate Document</div></div>
+      </div>
+
+      <div class="gen-form">
+        <div class="gen-form-header">
+          <div>
+            <div style="font-size:14px;font-weight:700;" id="genFormTitle">Dynamic Fields Required</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px;">Only editable fields — structure & formatting are preserved automatically</div>
+          </div>
+          <div id="genFieldCount" class="badge badge-ai"></div>
+        </div>
+        <div class="gen-form-body" id="genFormFields"></div>
+        <div style="padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:10px;">
+          <button class="btn btn-primary" onclick="generateDoc()"><i class="ti ti-wand"></i> Generate Document</button>
+          <button class="btn btn-ghost" onclick="clearFields()"><i class="ti ti-refresh"></i> Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="genResult" style="display:none;margin-top:1.5rem;"></div>
+  </div>
+
+  <!-- SMART INPUT -->
+  <div class="view" id="view-smart">
+    <div class="section-head">
+      <div>
+        <div class="section-title"><i class="ti ti-brain" style="color:var(--accent2)"></i> Smart Input Engine</div>
+        <div class="section-sub">Paste messy, unstructured text — AI maps it to the correct placeholders</div>
+      </div>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:600;">EXAMPLE INPUT</div>
+      <div style="font-size:13px;color:var(--text3);font-style:italic;">"Rahul Sharma, joining as Senior Developer on 15 April 2026, package is 18 lakhs CTC, reporting to Priya Mehra, Mumbai office, IT department"</div>
+    </div>
+
+    <div style="margin-bottom:8px;font-size:13px;font-weight:600;color:var(--text2);">Paste your unstructured input below:</div>
+    <textarea class="smart-textarea" id="smartInput" placeholder="Type anything... names, dates, salary, designation — in any order, any format"></textarea>
+    <div style="display:flex;gap:10px;margin-top:10px;">
+      <button class="btn btn-primary" onclick="runSmartMap()"><i class="ti ti-wand"></i> AI Map Fields</button>
+      <button class="btn btn-ghost" onclick="loadSmartExample()"><i class="ti ti-bulb"></i> Load Example</button>
+    </div>
+
+    <div id="smartResult" style="display:none;margin-top:1.5rem;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;font-weight:600;">
+        <i class="ti ti-check" style="color:var(--green)"></i> Mapping Complete
+      </div>
+      <div class="smart-result" id="smartMappings"></div>
+      <div style="margin-top:12px;display:flex;gap:10px;">
+        <button class="btn btn-primary btn-sm" onclick="useSmartMappings()"><i class="ti ti-wand"></i> Use These Values → Generate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLACEHOLDERS -->
+  <div class="view" id="view-placeholders">
+    <div class="section-head">
+      <div>
+        <div class="section-title"><i class="ti ti-tags" style="color:var(--accent2)"></i> Placeholder Map</div>
+        <div class="section-sub">All detected dynamic variables categorized by type</div>
+      </div>
+    </div>
+    <div class="ph-grid" id="fullPhGrid" style="margin-bottom:1.5rem;"></div>
+
+    <!-- Static vs Dynamic breakdown -->
+    <div class="analysis-grid" style="margin-top:1rem;">
+      <div class="analysis-card">
+        <div class="analysis-card-title"><i class="ti ti-lock" style="color:var(--teal)"></i> Static Content (Fixed)</div>
+        <div id="staticList"></div>
+      </div>
+      <div class="analysis-card">
+        <div class="analysis-card-title"><i class="ti ti-refresh" style="color:var(--amber)"></i> Dynamic Content (Variable)</div>
+        <div id="dynamicList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="view" id="view-preview">
+    <div class="section-head">
+      <div>
+        <div class="section-title"><i class="ti ti-eye" style="color:var(--accent2)"></i> Live Document Preview</div>
+        <div class="section-sub">Real-time preview with placeholder highlighting</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" id="toggleHighlight" onclick="toggleHighlights()"><i class="ti ti-highlight"></i> Toggle Highlights</button>
+        <button class="btn btn-secondary btn-sm" onclick="downloadDoc()"><i class="ti ti-download"></i> Download</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem;display:flex;gap:8px;align-items:center;">
+      <span style="font-size:13px;color:var(--text2);">Template:</span>
+      <select id="previewTemplateSelect" class="field-input" style="width:200px;padding:6px 10px;" onchange="loadPreview()">
+        <option value="offer">Offer Letter</option>
+        <option value="invoice">Invoice Template</option>
+        <option value="nda">NDA Contract</option>
+      </select>
+      <span class="badge badge-ai" style="margin-left:8px;" id="previewPhCount"></span>
+    </div>
+
+    <div class="preview-wrap">
+      <div class="preview-toolbar">
+        <div class="preview-dots">
+          <div class="preview-dot" style="background:#ff5f57"></div>
+          <div class="preview-dot" style="background:#febc2e"></div>
+          <div class="preview-dot" style="background:#28c840"></div>
+        </div>
+        <span style="font-size:12px;color:#888;margin-left:8px;">Document Preview</span>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <span style="font-size:11px;color:#888;background:#f3f3f3;padding:2px 8px;border-radius:4px;">🟡 Unfilled placeholder</span>
+          <span style="font-size:11px;color:#888;background:#f3f3f3;padding:2px 8px;border-radius:4px;">🟢 Filled value</span>
+        </div>
+      </div>
+      <div class="preview-body" id="previewBody"></div>
+    </div>
+  </div>
+
+</main>
+</div>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif">
+  <i class="ti ti-check" style="color:var(--green)"></i>
+  <span id="notifText">Done!</span>
+</div>
+
+<script>
+const TEMPLATES = {
+  offer: {
+    name: "Offer Letter",
+    icon: "📄",
+    color: "#8b5cf6",
+    dot: "#8b5cf6",
+    phCount: 12,
+    tags: ["HR", "Recruitment", "Onboarding"],
+    tagColors: ["rgba(139,92,246,0.15)", "rgba(20,184,166,0.1)", "rgba(245,158,11,0.1)"],
+    fields: [
+      { id: "candidate_name", label: "Candidate Name", cat: "personal", req: true, placeholder: "e.g. Rahul Sharma" },
+      { id: "designation", label: "Designation", cat: "org", req: true, placeholder: "e.g. Senior Developer" },
+      { id: "department", label: "Department", cat: "org", req: true, placeholder: "e.g. Engineering" },
+      { id: "joining_date", label: "Joining Date", cat: "date", req: true, placeholder: "e.g. 15 April 2026" },
+      { id: "salary_ctc", label: "Salary (CTC)", cat: "financial", req: true, placeholder: "e.g. ₹18,00,000" },
+      { id: "location", label: "Office Location", cat: "address", req: true, placeholder: "e.g. Mumbai" },
+      { id: "reporting_manager", label: "Reporting Manager", cat: "org", req: false, placeholder: "e.g. Priya Mehra" },
+      { id: "probation_period", label: "Probation Period", cat: "date", req: false, placeholder: "e.g. 6 months" },
+      { id: "doc_date", label: "Letter Date", cat: "date", req: true, placeholder: "e.g. 09 May 2026" },
+      { id: "hr_name", label: "HR Authority Name", cat: "approval", req: false, placeholder: "e.g. Amit Kumar" },
+      { id: "custom_notes", label: "Custom Remarks", cat: "other", req: false, placeholder: "Any additional notes..." },
+    ]
+  },
+  invoice: {
+    name: "Invoice Template",
+    icon: "🧾",
+    color: "#14b8a6",
+    dot: "#14b8a6",
+    phCount: 15,
+    tags: ["Finance", "Billing", "Client"],
+    tagColors: ["rgba(20,184,166,0.1)", "rgba(245,158,11,0.1)", "rgba(244,63,94,0.1)"],
+    fields: [
+      { id: "client_name", label: "Client Name / Company", cat: "personal", req: true, placeholder: "e.g. Acme Corp" },
+      { id: "invoice_number", label: "Invoice Number", cat: "numerical", req: true, placeholder: "e.g. INV-2026-047" },
+      { id: "invoice_date", label: "Invoice Date", cat: "date", req: true, placeholder: "e.g. 09 May 2026" },
+      { id: "due_date", label: "Due Date", cat: "date", req: true, placeholder: "e.g. 09 June 2026" },
+      { id: "client_address", label: "Client Address", cat: "address", req: true, placeholder: "Full billing address" },
+      { id: "item_desc", label: "Item / Service Description", cat: "other", req: true, placeholder: "e.g. Web Development Services" },
+      { id: "quantity", label: "Quantity", cat: "numerical", req: true, placeholder: "e.g. 1" },
+      { id: "unit_price", label: "Unit Price", cat: "financial", req: true, placeholder: "e.g. ₹50,000" },
+      { id: "tax_rate", label: "Tax Rate (%)", cat: "financial", req: false, placeholder: "e.g. 18" },
+      { id: "payment_terms", label: "Payment Terms", cat: "legal", req: false, placeholder: "e.g. Net 30 days" },
+      { id: "bank_details", label: "Bank / UPI Details", cat: "financial", req: false, placeholder: "Bank name, account no." },
+    ]
+  },
+  nda: {
+    name: "NDA Contract",
+    icon: "🔏",
+    color: "#f43f5e",
+    dot: "#f43f5e",
+    phCount: 10,
+    tags: ["Legal", "Contract", "Compliance"],
+    tagColors: ["rgba(244,63,94,0.1)", "rgba(139,92,246,0.15)", "rgba(20,184,166,0.1)"],
+    fields: [
+      { id: "party_a", label: "Party A (Disclosing Party)", cat: "personal", req: true, placeholder: "e.g. TechVision Pvt Ltd" },
+      { id: "party_b", label: "Party B (Receiving Party)", cat: "personal", req: true, placeholder: "e.g. Rahul Sharma" },
+      { id: "effective_date", label: "Effective Date", cat: "date", req: true, placeholder: "e.g. 09 May 2026" },
+      { id: "duration", label: "Confidentiality Duration", cat: "date", req: true, placeholder: "e.g. 2 years" },
+      { id: "purpose", label: "Purpose of Disclosure", cat: "legal", req: true, placeholder: "e.g. Software development collaboration" },
+      { id: "jurisdiction", label: "Governing Jurisdiction", cat: "legal", req: true, placeholder: "e.g. Mumbai, Maharashtra" },
+      { id: "witness_name", label: "Witness Name", cat: "approval", req: false, placeholder: "e.g. Kavita Joshi" },
+      { id: "signatory_a", label: "Signatory (Party A)", cat: "approval", req: true, placeholder: "e.g. CEO Name" },
+      { id: "signatory_b", label: "Signatory (Party B)", cat: "approval", req: true, placeholder: "Full name" },
+    ]
+  }
+};
+
+const PH_CATEGORIES = [
+  { name: "Personal Information", icon: "ti-user", color: "#8b5cf6", bg: "rgba(139,92,246,0.1)", tags: ["{{Candidate_Name}}", "{{Client_Name}}", "{{Employee_ID}}", "{{Party_Name}}"], key: "personal" },
+  { name: "Financial Information", icon: "ti-cash", color: "#22c55e", bg: "rgba(34,197,94,0.1)", tags: ["{{Salary_CTC}}", "{{Invoice_Amount}}", "{{Tax_Rate}}", "{{Unit_Price}}", "{{Total_Amount}}"], key: "financial" },
+  { name: "Dates & Timelines", icon: "ti-calendar", color: "#f59e0b", bg: "rgba(245,158,11,0.1)", tags: ["{{Document_Date}}", "{{Joining_Date}}", "{{Due_Date}}", "{{Effective_Date}}", "{{Deadline}}"], key: "date" },
+  { name: "Organizational Info", icon: "ti-building", color: "#14b8a6", bg: "rgba(20,184,166,0.1)", tags: ["{{Designation}}", "{{Department}}", "{{Reporting_Manager}}", "{{Company_Name}}"], key: "org" },
+  { name: "Legal Variables", icon: "ti-shield", color: "#f43f5e", bg: "rgba(244,63,94,0.1)", tags: ["{{Jurisdiction}}", "{{Governing_Law}}", "{{Contract_Period}}", "{{Notice_Period}}"], key: "legal" },
+  { name: "Address Fields", icon: "ti-map-pin", color: "#3b82f6", bg: "rgba(59,130,246,0.1)", tags: ["{{Office_Location}}", "{{Client_Address}}", "{{Branch_City}}", "{{Postal_Code}}"], key: "address" },
+  { name: "Numerical Data", icon: "ti-hash", color: "#a78bfa", bg: "rgba(167,139,250,0.1)", tags: ["{{Invoice_Number}}", "{{Quantity}}", "{{Employee_No}}", "{{Serial_No}}"], key: "numerical" },
+  { name: "Approval Authorities", icon: "ti-signature", color: "#fb923c", bg: "rgba(251,146,60,0.1)", tags: ["{{HR_Authority}}", "{{Signatory}}", "{{Witness_Name}}", "{{Director_Name}}"], key: "approval" },
+  { name: "Contact Information", icon: "ti-phone", color: "#06b6d4", bg: "rgba(6,182,212,0.1)", tags: ["{{Email_Address}}", "{{Phone_Number}}", "{{LinkedIn_URL}}"], key: "contact" },
+];
+
+const STATIC_ITEMS = ["Company Logo", "Legal Disclaimer Clauses", "Header & Footer Design", "Brand Color Scheme", "Standard Instructions", "Fixed Policy Table", "Boilerplate Paragraphs", "Section Headings", "Compliance Notices"];
+const DYNAMIC_ITEMS = ["Employee / Candidate Name", "Offer Date / Document Date", "Joining Date", "Salary / CTC", "Designation & Department", "Reporting Manager", "Office Location", "Invoice Number & Amount", "Client Name & Address", "Contract Duration", "Signatory Names", "Custom Remarks"];
+
+let highlights = true;
+let currentView = 'dashboard';
+let filledValues = {};
+
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => {
+    if (el.getAttribute('onclick') && el.getAttribute('onclick').includes("'" + v + "'")) el.classList.add('active');
+  });
+  currentView = v;
+  if (v === 'preview') loadPreview();
+  if (v === 'placeholders') renderPlaceholders();
+  if (v === 'library') renderLibrary();
+  if (v === 'dashboard') renderDashboard();
+}
+
+function renderDashboard() {
+  // template cards
+  const grid = document.getElementById('dashTemplates');
+  grid.innerHTML = '';
+  Object.entries(TEMPLATES).slice(0,3).forEach(([k, t]) => {
+    grid.innerHTML += `<div class="tpl-card" onclick="quickGenerate('${k}')">
+      <div class="tpl-card-img" style="background:linear-gradient(135deg,${t.color}22,${t.color}11);">
+        <span style="font-size:36px;position:relative;z-index:1;">${t.icon}</span>
+      </div>
+      <div class="tpl-card-body">
+        <div class="tpl-card-title">${t.name}</div>
+        <div class="tpl-card-meta">
+          <span><i class="ti ti-tags" style="font-size:12px;"></i> ${t.phCount} placeholders</span>
+          <span><i class="ti ti-file" style="font-size:12px;"></i> ${t.fields.length} fields</span>
+        </div>
+        <div class="tpl-card-tags">
+          ${t.tags.map((tag,i) => `<span class="tpl-tag" style="background:${t.tagColors[i]||'rgba(139,92,246,0.1)'};color:${t.color};font-size:10px;padding:2px 8px;border-radius:4px;">${tag}</span>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  // ph preview (4 cats)
+  const ph = document.getElementById('phPreview');
+  ph.innerHTML = '';
+  PH_CATEGORIES.slice(0,4).forEach(cat => {
+    ph.innerHTML += `<div class="ph-cat">
+      <div class="ph-cat-header">
+        <div class="ph-cat-icon" style="background:${cat.bg};color:${cat.color};"><i class="ti ${cat.icon}" style="font-size:16px;"></i></div>
+        <div class="ph-cat-name">${cat.name}</div>
+      </div>
+      <div class="ph-tags">${cat.tags.slice(0,3).map(t => `<span class="ph-tag">${t}</span>`).join('')}</div>
+    </div>`;
+  });
+}
+
+function renderLibrary() {
+  const grid = document.getElementById('libraryGrid');
+  grid.innerHTML = '';
+  Object.entries(TEMPLATES).forEach(([k, t]) => {
+    grid.innerHTML += `<div class="tpl-card">
+      <div class="tpl-card-img" style="background:linear-gradient(135deg,${t.color}22,${t.color}11);">
+        <span style="font-size:36px;position:relative;z-index:1;">${t.icon}</span>
+      </div>
+      <div class="tpl-card-body">
+        <div class="tpl-card-title">${t.name}</div>
+        <div class="tpl-card-meta">
+          <span style="color:${t.color};"><i class="ti ti-tags" style="font-size:12px;"></i> ${t.phCount} placeholders</span>
+          <span><i class="ti ti-file" style="font-size:12px;"></i> ${t.fields.length} fields</span>
+        </div>
+        <div class="tpl-card-tags">
+          ${t.tags.map((tag,i) => `<span class="tpl-tag" style="background:${t.tagColors[i]||'rgba(139,92,246,0.1)'};color:${t.color};font-size:10px;padding:2px 8px;border-radius:4px;">${tag}</span>`).join('')}
+        </div>
+        <div style="margin-top:10px;display:flex;gap:6px;">
+          <button class="btn btn-primary btn-sm" onclick="quickGenerate('${k}')"><i class="ti ti-wand"></i> Generate</button>
+          <button class="btn btn-ghost btn-sm" onclick="previewTemplate('${k}')"><i class="ti ti-eye"></i> Preview</button>
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+function renderPlaceholders() {
+  const grid = document.getElementById('fullPhGrid');
+  grid.innerHTML = '';
+  PH_CATEGORIES.forEach(cat => {
+    grid.innerHTML += `<div class="ph-cat">
+      <div class="ph-cat-header">
+        <div class="ph-cat-icon" style="background:${cat.bg};color:${cat.color};"><i class="ti ${cat.icon}" style="font-size:16px;"></i></div>
+        <div class="ph-cat-name">${cat.name}</div>
+      </div>
+      <div class="ph-tags">${cat.tags.map(t => `<span class="ph-tag">${t}</span>`).join('')}</div>
+    </div>`;
+  });
+
+  const sl = document.getElementById('staticList');
+  sl.innerHTML = STATIC_ITEMS.map(i => `<div class="content-item"><span class="content-badge badge-static">STATIC</span><span>${i}</span></div>`).join('');
+
+  const dl = document.getElementById('dynamicList');
+  dl.innerHTML = DYNAMIC_ITEMS.map(i => `<div class="content-item"><span class="content-badge badge-dynamic">DYNAMIC</span><span>${i}</span></div>`).join('');
+}
+
+function renderSidebar() {
+  const list = document.getElementById('tplList');
+  const colors = { offer: '#8b5cf6', invoice: '#14b8a6', nda: '#f43f5e' };
+  list.innerHTML = Object.entries(TEMPLATES).map(([k,t]) =>
+    `<div class="template-chip" onclick="quickGenerate('${k}')">
+      <span class="dot" style="background:${t.color}"></span>
+      <span>${t.name}</span>
+    </div>`
+  ).join('');
+}
+
+function quickGenerate(k) {
+  document.getElementById('genTemplateSelect').value = k;
+  loadTemplateFields();
+  switchView('generate');
+}
+
+function previewTemplate(k) {
+  document.getElementById('previewTemplateSelect').value = k;
+  switchView('preview');
+  loadPreview();
+}
+
+function loadTemplateFields() {
+  const k = document.getElementById('genTemplateSelect').value;
+  if (!k) { document.getElementById('genFormWrap').style.display = 'none'; return; }
+  const t = TEMPLATES[k];
+  document.getElementById('genFormWrap').style.display = 'block';
+  document.getElementById('genFormTitle').textContent = t.name + ' — Dynamic Fields';
+  document.getElementById('genFieldCount').textContent = t.fields.filter(f=>f.req).length + ' required fields';
+
+  const catColors = { personal: '#8b5cf6', financial: '#22c55e', date: '#f59e0b', org: '#14b8a6', legal: '#f43f5e', address: '#3b82f6', numerical: '#a78bfa', approval: '#fb923c', contact: '#06b6d4', other: '#888' };
+  const catNames = { personal:'Personal', financial:'Financial', date:'Date', org:'Org', legal:'Legal', address:'Address', numerical:'Numeric', approval:'Approval', contact:'Contact', other:'Other' };
+
+  const body = document.getElementById('genFormFields');
+  body.innerHTML = t.fields.map(f => `
+    <div class="field-group${f.id==='custom_notes'?' full':''}">
+      <label class="field-label">
+        <span class="cat-dot" style="background:${catColors[f.cat]||'#888'}"></span>
+        ${f.label} ${f.req ? '<span class="req">*</span>' : ''}
+        <span style="font-size:10px;margin-left:auto;background:${catColors[f.cat]||'#888'}22;color:${catColors[f.cat]||'#888'};padding:1px 6px;border-radius:3px;">${catNames[f.cat]||f.cat}</span>
+      </label>
+      ${f.id==='custom_notes' ? `<textarea class="field-input" id="f_${f.id}" placeholder="${f.placeholder}" rows="3"></textarea>` : `<input class="field-input" id="f_${f.id}" placeholder="${f.placeholder}" type="text">`}
+    </div>`).join('');
+}
+
+function generateDoc() {
+  const k = document.getElementById('genTemplateSelect').value;
+  if (!k) return;
+  const t = TEMPLATES[k];
+  filledValues = {};
+  t.fields.forEach(f => {
+    const el = document.getElementById('f_' + f.id);
+    if (el && el.value) filledValues[f.id] = el.value;
+  });
+
+  const missing = t.fields.filter(f => f.req && !filledValues[f.id]).map(f => f.label);
+  if (missing.length) {
+    showNotif('⚠ Missing: ' + missing.slice(0,2).join(', ') + (missing.length>2?' and more...':''));
+    return;
+  }
+
+  const result = document.getElementById('genResult');
+  result.style.display = 'block';
+  result.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+      <div style="padding:12px 16px;background:rgba(34,197,94,0.1);border-bottom:1px solid rgba(34,197,94,0.2);display:flex;align-items:center;gap:8px;">
+        <i class="ti ti-check" style="color:var(--green);font-size:18px;"></i>
+        <span style="color:var(--green);font-weight:700;">Document Generated Successfully</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--text2);">${t.name} · ${new Date().toLocaleDateString()}</span>
+      </div>
+      <div style="padding:1.25rem;">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Populated placeholders:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${Object.entries(filledValues).map(([k,v]) => `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;"><span style="color:var(--accent2);font-family:monospace;">{{${k.replace(/_/g,'_').toUpperCase()}}}</span> <span style="color:var(--text3);">→</span> <span style="color:var(--text);font-weight:600;">${v}</span></div>`).join('')}
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="downloadDoc()"><i class="ti ti-download"></i> Download Document</button>
+          <button class="btn btn-secondary btn-sm" onclick="previewGenerated()"><i class="ti ti-eye"></i> Preview</button>
+        </div>
+      </div>
+    </div>`;
+  showNotif('✦ Document generated with ' + Object.keys(filledValues).length + ' values filled!');
+}
+
+function clearFields() {
+  const k = document.getElementById('genTemplateSelect').value;
+  if (!k) return;
+  TEMPLATES[k].fields.forEach(f => {
+    const el = document.getElementById('f_' + f.id);
+    if (el) el.value = '';
+  });
+  document.getElementById('genResult').style.display = 'none';
+}
+
+function loadPreview() {
+  const k = document.getElementById('previewTemplateSelect').value || 'offer';
+  const t = TEMPLATES[k];
+  document.getElementById('previewPhCount').textContent = t.phCount + ' placeholders';
+
+  const ph = (text, id) => filledValues[id]
+    ? `<span class="ph-filled">${filledValues[id]}</span>`
+    : `<span class="ph-highlight" title="Click to fill">{{${text}}}</span>`;
+
+  const bodies = {
+    offer: `
+      <div class="doc-content">
+        <div class="doc-header">
+          <div class="doc-company">🏢 TechVision Solutions Pvt. Ltd.</div>
+          <div class="doc-tagline">Innovating Tomorrow · HR Department</div>
+        </div>
+        <div style="text-align:right;margin-bottom:1rem;">Date: ${ph('Document_Date','doc_date')}</div>
+        <div class="doc-title">LETTER OF OFFER</div>
+        <p>Dear ${ph('Candidate_Name','candidate_name')},</p>
+        <p style="margin-top:0.8rem;">We are pleased to offer you the position of <strong>${ph('Designation','designation')}</strong> in the <strong>${ph('Department','department')}</strong> department at TechVision Solutions Pvt. Ltd.</p>
+        <table class="doc-table" style="margin-top:1rem;">
+          <tr><th colspan="2">Employment Details</th></tr>
+          <tr><td>Designation</td><td>${ph('Designation','designation')}</td></tr>
+          <tr><td>Department</td><td>${ph('Department','department')}</td></tr>
+          <tr><td>Date of Joining</td><td>${ph('Joining_Date','joining_date')}</td></tr>
+          <tr><td>Annual CTC</td><td>${ph('Salary_CTC','salary_ctc')}</td></tr>
+          <tr><td>Work Location</td><td>${ph('Location','location')}</td></tr>
+          <tr><td>Reporting Manager</td><td>${ph('Reporting_Manager','reporting_manager')}</td></tr>
+          <tr><td>Probation Period</td><td>${ph('Probation_Period','probation_period')}</td></tr>
+        </table>
+        <p style="margin-top:1rem;">${ph('Custom_Notes','custom_notes')}</p>
+        <p style="margin-top:2rem;">Sincerely,<br><br>${ph('HR_Authority','hr_name')}<br>HR Department · TechVision Solutions</p>
+      </div>`,
+    invoice: `
+      <div class="doc-content">
+        <div class="doc-header">
+          <div class="doc-company">🧾 INVOICE</div>
+          <div class="doc-tagline">TechVision Solutions Pvt. Ltd.</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:1.5rem;">
+          <div><strong>Invoice No:</strong> ${ph('Invoice_Number','invoice_number')}<br><strong>Date:</strong> ${ph('Invoice_Date','invoice_date')}<br><strong>Due:</strong> ${ph('Due_Date','due_date')}</div>
+          <div style="text-align:right;"><strong>Bill To:</strong><br>${ph('Client_Name','client_name')}<br><span style="font-size:12px;color:#666;">${ph('Client_Address','client_address')}</span></div>
+        </div>
+        <table class="doc-table">
+          <tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Amount</th></tr>
+          <tr><td>${ph('Item_Description','item_desc')}</td><td>${ph('Quantity','quantity')}</td><td>${ph('Unit_Price','unit_price')}</td><td>${ph('Total','unit_price')}</td></tr>
+        </table>
+        <div style="text-align:right;margin-top:1rem;"><strong>Tax (${ph('Tax_Rate','tax_rate')}%)</strong><br><strong style="font-size:16px;">Total Due: ${ph('Total_Amount','unit_price')}</strong></div>
+        <p style="margin-top:1rem;font-size:13px;color:#666;">${ph('Payment_Terms','payment_terms')}</p>
+      </div>`,
+    nda: `
+      <div class="doc-content">
+        <div class="doc-header">
+          <div class="doc-company">🔏 NON-DISCLOSURE AGREEMENT</div>
+        </div>
+        <p>This Non-Disclosure Agreement ("Agreement") is entered into as of ${ph('Effective_Date','effective_date')} between:</p>
+        <p style="margin-top:0.8rem;"><strong>Disclosing Party:</strong> ${ph('Party_A','party_a')}</p>
+        <p><strong>Receiving Party:</strong> ${ph('Party_B','party_b')}</p>
+        <p style="margin-top:1rem;"><strong>Purpose:</strong> ${ph('Purpose','purpose')}</p>
+        <p style="margin-top:0.8rem;">This Agreement shall remain in effect for <strong>${ph('Duration','duration')}</strong> from the Effective Date.</p>
+        <p style="margin-top:0.8rem;">This Agreement shall be governed by the laws of <strong>${ph('Jurisdiction','jurisdiction')}</strong>.</p>
+        <div style="margin-top:2rem;display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
+          <div>__________________<br>${ph('Signatory_A','signatory_a')}<br><small>For ${ph('Party_A','party_a')}</small></div>
+          <div>__________________<br>${ph('Signatory_B','signatory_b')}<br><small>Receiving Party</small></div>
+        </div>
+        <div style="margin-top:1rem;font-size:13px;">Witness: ${ph('Witness','witness_name')}</div>
+      </div>`
+  };
+
+  document.getElementById('previewBody').innerHTML = bodies[k] || bodies.offer;
+}
+
+function toggleHighlights() {
+  highlights = !highlights;
+  document.querySelectorAll('.ph-highlight').forEach(el => {
+    el.style.display = highlights ? '' : 'none';
+  });
+}
+
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  simulateAnalysis(file.name);
+}
+
+function loadDemo(type) {
+  simulateAnalysis(TEMPLATES[type].name + '.docx', type);
+}
+
+function simulateAnalysis(fname, type) {
+  const result = document.getElementById('analysisResult');
+  const thinking = document.getElementById('aiThinking');
+  const cards = document.getElementById('analysisCards');
+  result.style.display = 'block';
+  thinking.style.display = 'flex';
+  cards.style.display = 'none';
+
+  // Step animation
+  const steps = document.querySelectorAll('#view-upload .step');
+  steps[0].classList.add('done'); steps[0].classList.remove('active');
+  steps[1].classList.add('active');
+
+  setTimeout(() => {
+    steps[1].classList.add('done'); steps[1].classList.remove('active');
+    steps[2].classList.add('active');
+    thinking.querySelector('span:last-child').textContent = 'Mapping placeholders...';
+  }, 900);
+
+  setTimeout(() => {
+    steps[2].classList.add('done'); steps[2].classList.remove('active');
+    steps[3].classList.add('active');
+    thinking.style.display = 'none';
+    cards.style.display = 'block';
+    const t = type ? TEMPLATES[type] : TEMPLATES.offer;
+    cards.innerHTML = `
+      <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <i class="ti ti-check" style="color:var(--green)"></i>
+          <span style="font-weight:700;color:var(--green);">AI Analysis Complete — ${fname}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
+          <div style="background:var(--card);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:22px;font-weight:700;color:var(--accent2)">${t.phCount}</div>
+            <div style="font-size:11px;color:var(--text2);">Dynamic Placeholders</div>
+          </div>
+          <div style="background:var(--card);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:22px;font-weight:700;color:var(--teal)">${STATIC_ITEMS.length}</div>
+            <div style="font-size:11px;color:var(--text2);">Static Elements</div>
+          </div>
+          <div style="background:var(--card);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:22px;font-weight:700;color:var(--amber)">9</div>
+            <div style="font-size:11px;color:var(--text2);">Categories Detected</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          ${t.fields.map(f => `<span style="font-family:monospace;font-size:11px;background:rgba(139,92,246,0.1);color:var(--accent2);border:1px solid rgba(139,92,246,0.2);padding:3px 8px;border-radius:5px;">{{${f.id.toUpperCase()}}}</span>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="quickGenerate('${type||'offer'}')"><i class="ti ti-wand"></i> Generate Document</button>
+          <button class="btn btn-secondary" onclick="switchView('placeholders')"><i class="ti ti-tags"></i> View Placeholder Map</button>
+        </div>
+      </div>`;
+    steps[3].classList.add('done'); steps[3].classList.remove('active');
+    showNotif('✦ Template analyzed! ' + t.phCount + ' placeholders detected.');
+  }, 2000);
+}
+
+function runSmartMap() {
+  const input = document.getElementById('smartInput').value.trim();
+  if (!input) { showNotif('Please enter some text first.'); return; }
+
+  const mappings = smartExtract(input);
+  const result = document.getElementById('smartResult');
+  const mp = document.getElementById('smartMappings');
+  result.style.display = 'block';
+
+  mp.innerHTML = `<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Detected ${mappings.length} field mappings from your input:</div>` +
+    mappings.map(m => `<div class="mapping-row">
+      <span class="mapping-key">{{${m.key}}}</span>
+      <span class="mapping-arrow">→</span>
+      <span class="mapping-val">${m.val}</span>
+    </div>`).join('');
+
+  showNotif('✦ Mapped ' + mappings.length + ' fields from your input!');
+}
+
+function smartExtract(text) {
+  const mappings = [];
+  const patterns = [
+    { re: /\b([A-Z][a-z]+ [A-Z][a-z]+)\b/, key: 'CANDIDATE_NAME' },
+    { re: /(?:joining|starts?|from|on)\s+(\d{1,2}\s+\w+\s+\d{4}|\d{1,2}(?:st|nd|rd|th)?\s+\w+)/i, key: 'JOINING_DATE' },
+    { re: /(?:package|ctc|salary|pay)[^\d]*(\d+(?:\.\d+)?\s*(?:lakh|lac|k|L|cr)?)/i, key: 'SALARY_CTC' },
+    { re: /(?:as|position|role of|designation)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)*)/i, key: 'DESIGNATION' },
+    { re: /(?:department|dept|team)\s+([A-Za-z ]+?)(?:,|\.|$)/i, key: 'DEPARTMENT' },
+    { re: /(?:reporting to|manager|reports to)\s+([A-Z][a-z]+ [A-Z][a-z]+)/i, key: 'REPORTING_MANAGER' },
+    { re: /(?:location|office|city|based in)\s+([A-Z][a-z]+)/i, key: 'LOCATION' },
+    { re: /(?:client|company|firm)\s+([A-Z][A-Za-z ]+?)(?:,|\.|$)/i, key: 'CLIENT_NAME' },
+  ];
+
+  // Also try to extract names from start
+  const words = text.split(/[,\s]+/);
+  if (/^[A-Z][a-z]+$/.test(words[0]) && words[1] && /^[A-Z][a-z]+$/.test(words[1])) {
+    mappings.push({ key: 'CANDIDATE_NAME', val: words[0] + ' ' + words[1] });
+  }
+
+  patterns.forEach(p => {
+    const m = text.match(p.re);
+    if (m && m[1] && !mappings.find(x => x.key === p.key)) {
+      mappings.push({ key: p.key, val: m[1].trim() });
+    }
+  });
+
+  // Extract numbers that might be salary
+  if (!mappings.find(x => x.key === 'SALARY_CTC')) {
+    const num = text.match(/(\d+)\s*(?:lakh|lac|L\b)/i);
+    if (num) mappings.push({ key: 'SALARY_CTC', val: num[1] + ' Lakh' });
+  }
+
+  return mappings.length ? mappings : [{ key: 'CANDIDATE_NAME', val: 'Could not parse — try "Name: John Doe"' }];
+}
+
+function loadSmartExample() {
+  document.getElementById('smartInput').value = 'Rahul Sharma, joining as Senior Developer on 15 April 2026, package is 18 lakhs CTC, reporting to Priya Mehra, Mumbai office, IT department';
+  runSmartMap();
+}
+
+function useSmartMappings() {
+  switchView('generate');
+  document.getElementById('genTemplateSelect').value = 'offer';
+  loadTemplateFields();
+  showNotif('✦ Smart values loaded into form! Fill remaining fields and generate.');
+}
+
+function downloadDoc() {
+  showNotif('📄 Document download initiated (demo mode)');
+}
+
+function previewGenerated() {
+  switchView('preview');
+  loadPreview();
+}
+
+function showNotif(msg) {
+  const n = document.getElementById('notif');
+  document.getElementById('notifText').textContent = msg;
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 3500);
+}
+
+// INIT
+renderSidebar();
+renderDashboard();
+</script>
+</body>
+</html>
